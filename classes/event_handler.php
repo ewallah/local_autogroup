@@ -28,7 +28,7 @@
 
 namespace local_autogroup;
 
-use \core\event;
+use core\event;
 use local_autogroup\domain\group;
 
 /**
@@ -44,6 +44,7 @@ use local_autogroup\domain\group;
  */
 class event_handler {
     /**
+     * User enrolment created.
      * @param event\user_enrolment_created $event
      * @return mixed
      */
@@ -52,38 +53,38 @@ class event_handler {
         if (!$pluginconfig->listenforrolechanges) {
             return false;
         }
-
-        global $DB;
-
         $courseid = (int)$event->courseid;
         $userid = (int)$event->relateduserid;
 
-        $usecase = new usecase\verify_user_group_membership($userid, $DB, $courseid);
+        $usecase = new usecase\verify_user_group_membership($userid, $courseid);
         return $usecase->invoke();
     }
 
     /**
+     * Group member added.
      * @param event\group_member_added $event
      * @return bool
      * @throws \Exception
      * @throws \dml_exception
      */
     public static function group_member_added(event\group_member_added $event) {
+        global $DB;
         if (self::triggered_by_autogroup($event)) {
             return false;
         }
 
-        global $DB;
         $pluginconfig = get_config('local_autogroup');
 
         // Add to manually assigned list (local_autogroup_manual).
         $userid = (int)$event->relateduserid;
         $groupid = (int)$event->objectid;
 
-        $group = new group($groupid, $DB);
-        if ($group->is_valid_autogroup($DB) &&
-            !$DB->record_exists('local_autogroup_manual', array('userid' => $userid, 'groupid' => $groupid))) {
-            $record = (object)array('userid' => $userid, 'groupid' => $groupid);
+        $group = new group($groupid);
+        if (
+            $group->is_valid_autogroup() &&
+            !$DB->record_exists('local_autogroup_manual', ['userid' => $userid, 'groupid' => $groupid])
+        ) {
+            $record = (object)['userid' => $userid, 'groupid' => $groupid];
             $DB->insert_record('local_autogroup_manual', $record);
         }
 
@@ -94,11 +95,12 @@ class event_handler {
         $courseid = (int)$event->courseid;
         $userid = (int)$event->relateduserid;
 
-        $usecase = new usecase\verify_user_group_membership($userid, $DB, $courseid);
+        $usecase = new usecase\verify_user_group_membership($userid, $courseid);
         return $usecase->invoke();
     }
 
     /**
+     * Group member removed.
      * @param event\group_member_removed $event
      * @return bool
      * @throws \Exception
@@ -116,8 +118,8 @@ class event_handler {
         $userid = (int)$event->relateduserid;
         $groupid = (int)$event->objectid;
 
-        if ($DB->record_exists('local_autogroup_manual', array('userid' => $userid, 'groupid' => $groupid))) {
-            $DB->delete_records('local_autogroup_manual', array('userid' => $userid, 'groupid' => $groupid));
+        if ($DB->record_exists('local_autogroup_manual', ['userid' => $userid, 'groupid' => $groupid])) {
+            $DB->delete_records('local_autogroup_manual', ['userid' => $userid, 'groupid' => $groupid]);
         }
 
         $groupid = (int)$event->objectid;
@@ -125,16 +127,17 @@ class event_handler {
         $userid = (int)$event->relateduserid;
 
         if ($pluginconfig->listenforgroupmembership) {
-            $usecase1 = new usecase\verify_user_group_membership($userid, $DB, $courseid);
+            $usecase1 = new usecase\verify_user_group_membership($userid, $courseid);
             $usecase1->invoke();
         }
 
-        $usecase2 = new usecase\verify_group_population($groupid, $DB, $PAGE);
+        $usecase2 = new usecase\verify_group_population($groupid, $PAGE);
         $usecase2->invoke();
         return true;
     }
 
     /**
+     * User updated.
      * @param event\user_updated $event
      * @return mixed
      */
@@ -143,16 +146,13 @@ class event_handler {
         if (!$pluginconfig->listenforuserprofilechanges) {
             return false;
         }
-
-        global $DB;
-
         $userid = (int)$event->relateduserid;
-
-        $usecase = new usecase\verify_user_group_membership($userid, $DB);
+        $usecase = new usecase\verify_user_group_membership($userid);
         return $usecase->invoke();
     }
 
     /**
+     * Group created.
      * @param event\base $event
      * @return bool
      * @throws \Exception
@@ -168,15 +168,16 @@ class event_handler {
             return false;
         }
 
-        global $DB, $PAGE;
+        global $PAGE;
 
         $groupid = (int)$event->objectid;
 
-        $usecase = new usecase\verify_group_idnumber($groupid, $DB, $PAGE);
+        $usecase = new usecase\verify_group_idnumber($groupid, $PAGE);
         return $usecase->invoke();
     }
 
     /**
+     * Group change.
      * @param event\base $event
      * @return bool
      * @throws \Exception
@@ -194,7 +195,7 @@ class event_handler {
 
         // Remove from manually assigned list (local_autogroup_manual).
         if ($event->eventname === '\core\event\group_deleted') {
-            $DB->delete_records('local_autogroup_manual', array('groupid' => $groupid));
+            $DB->delete_records('local_autogroup_manual', ['groupid' => $groupid]);
         }
 
         $pluginconfig = get_config('local_autogroup');
@@ -202,16 +203,17 @@ class event_handler {
             return false;
         }
 
-        if ($DB->record_exists('groups', array('id' => $groupid))) {
-            $verifygroupidnumber = new usecase\verify_group_idnumber($groupid, $DB, $PAGE);
+        if ($DB->record_exists('groups', ['id' => $groupid])) {
+            $verifygroupidnumber = new usecase\verify_group_idnumber($groupid, $PAGE);
             $verifygroupidnumber->invoke();
         }
 
-        $verifycoursegroupmembership = new usecase\verify_course_group_membership($courseid, $DB);
-        return $verifycoursegroupmembership->invoke();
+        $membership = new usecase\verify_course_group_membership($courseid);
+        return $membership->invoke();
     }
 
     /**
+     * Role change.
      * @param event\base $event
      * @return mixed
      */
@@ -220,29 +222,25 @@ class event_handler {
         if (!$pluginconfig->listenforrolechanges) {
             return false;
         }
-
-        global $DB;
-
         $userid = (int)$event->relateduserid;
-
-        $usecase = new usecase\verify_user_group_membership($userid, $DB);
+        $usecase = new usecase\verify_user_group_membership($userid);
         return $usecase->invoke();
     }
 
     /**
+     * Role deleted.
      * @param event\role_deleted $event
-     * @return mixed
+     * @return bool
      */
     public static function role_deleted(event\role_deleted $event) {
         global $DB;
-
         $DB->delete_records('local_autogroup_roles', ['roleid' => $event->objectid]);
         unset_config('eligiblerole_' . $event->objectid, 'local_autogroup');
-
         return true;
     }
 
     /**
+     * Course created.
      * @param event\course_created $event
      * @return mixed
      */
@@ -252,14 +250,14 @@ class event_handler {
             return false;
         }
 
-        global $DB;
         $courseid = (int)$event->courseid;
 
-        $usecase = new usecase\add_default_to_course($courseid, $DB);
+        $usecase = new usecase\add_default_to_course($courseid);
         return $usecase->invoke();
     }
 
     /**
+     * Course restored.
      * @param event\course_restored $event
      * @return mixed
      */
@@ -269,34 +267,14 @@ class event_handler {
             return false;
         }
 
-        global $DB;
         $courseid = (int)$event->courseid;
 
-        $usecase = new usecase\add_default_to_course($courseid, $DB);
+        $usecase = new usecase\add_default_to_course($courseid);
         return $usecase->invoke();
     }
 
     /**
-     * @param \totara_core\event\position_updated $event
-     * @return bool
-     */
-    public static function position_updated(\totara_core\event\position_updated $event) {
-        $pluginconfig = get_config('local_autogroup');
-        if (!$pluginconfig->listenforuserpositionchanges) {
-            return false;
-        }
-
-        global $DB;
-
-        $userid = (int)$event->relateduserid;
-
-        $usecase = new usecase\verify_user_group_membership($userid, $DB);
-        return $usecase->invoke();
-    }
-
-    /**
-     * Checks the data of an event to see whether it was initiated
-     * by the local_autogroup component
+     * Checks the data of an event to see whether it was initiated  by the local_autogroup component
      *
      * @param event\base $event
      * @return bool

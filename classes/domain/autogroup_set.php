@@ -42,7 +42,6 @@ use local_autogroup\exception;
 use local_autogroup\sort_module;
 use moodle_database;
 use stdClass;
-use totara_reportbuilder\rb\display\ucfirst;
 
 require_once(__DIR__ . "/../../../../group/lib.php");
 
@@ -51,59 +50,35 @@ require_once(__DIR__ . "/../../../../group/lib.php");
  * @package local_autogroup\domain
  */
 class autogroup_set extends domain {
-    /**
-     * An array of DB level attributes for an autogroup set
-     * used for handling stdclass object conversion.
-     *
-     * @var array
-     */
-    protected $attributes = array(
-        'id', 'courseid', 'sortmodule', 'sortconfig', 'timecreated', 'timemodified'
-    );
-    /**
-     * @var int
-     */
+    /** @var array attributes */
+    protected $attributes = [
+        'id', 'courseid', 'sortmodule', 'sortconfig', 'timecreated', 'timemodified',
+    ];
+    /** @var int courseid */
     protected $courseid = 0;
-    /**
-     * @var sort_module
-     */
+    /** @var sort_module sortmodule */
     protected $sortmodule;
-    /**
-     * @var string
-     */
+    /** @var string sortmodulename */
     protected $sortmodulename = 'local_autogroup\\sort_module\\profile_field';
-    /**
-     * @var string
-     */
+    /** @var string sortmoduleshortname */
     protected $sortmoduleshortname = 'profile_field';
-    /**
-     * @var stdClass
-     */
+    /** @var stdClass sortconfig */
     protected $sortconfig;
-    /**
-     * @var int
-     */
+    /** @var int timecreated */
     protected $timecreated = 0;
-    /**
-     * @var int
-     */
+    /** @var int timemodified */
     protected $timemodified = 0;
-    /**
-     * @var array
-     */
-    private $groups = array();
-    /**
-     * @var array
-     */
-    private $roles = array();
+    /** @var array groups  */
+    private $groups = [];
+    /** @var array roles  */
+    private $roles = [];
 
     /**
-     * @param \stdclass $autogroupset
-     * @param \moodle_database $db
-     * @param bool $lazyload
+     * Constructor.
+     * @param \stdClass $autogroupset
      * @throws exception\invalid_autogroup_set_argument
      */
-    public function __construct(\moodle_database $db, $autogroupset = null) {
+    public function __construct(stdClass $autogroupset = null) {
         // Set the sortconfig as empty.
         $this->sortconfig = new stdClass();
 
@@ -116,14 +91,15 @@ class autogroup_set extends domain {
 
         if ($this->exists()) {
             // Load autogroup groups for this autogroup set.
-            $this->get_autogroups($db);
+            $this->get_autogroups();
         }
 
-        $this->roles = $this->retrieve_applicable_roles($db);
+        $this->roles = $this->retrieve_applicable_roles();
     }
 
     /**
-     * @param \stdclass $autogroupset
+     * Validate object.
+     * @param stdClass $autogroupset
      * @return bool
      */
     private function validate_object($autogroupset) {
@@ -135,9 +111,10 @@ class autogroup_set extends domain {
     }
 
     /**
-     * @param \stdclass $autogroupset
+     * Load from object.
+     * @param stdClass $autogroupset
      */
-    private function load_from_object(\stdclass $autogroupset) {
+    private function load_from_object(stdClass $autogroupset) {
         $this->id = (int)$autogroupset->id;
 
         $this->courseid = (int)$autogroupset->courseid;
@@ -166,30 +143,31 @@ class autogroup_set extends domain {
     }
 
     /**
-     *
+     * Initialise.
      */
     private function initialise() {
         $this->sortmodule = new $this->sortmodulename($this->sortconfig, $this->courseid);
     }
 
     /**
-     * @param \moodle_database $db
+     * Set autogroups.
      */
-    private function get_autogroups(\moodle_database $db) {
+    private function get_autogroups() {
+        global $DB;
         $sql = "SELECT g.*" . PHP_EOL
             . "FROM {groups} g" . PHP_EOL
             . "WHERE g.courseid = :courseid" . PHP_EOL
-            . "AND " . $db->sql_like('g.idnumber', ':autogrouptag');
-        $param = array(
+            . "AND " . $DB->sql_like('g.idnumber', ':autogrouptag');
+        $param = [
             'courseid' => $this->courseid,
-            'autogrouptag' => $this->generate_group_idnumber('%')
-        );
+            'autogrouptag' => $this->generate_group_idnumber('%'),
+        ];
 
-        $this->groups = $db->get_records_sql($sql, $param);
+        $this->groups = $DB->get_records_sql($sql, $param);
 
         foreach ($this->groups as $k => $group) {
             try {
-                $this->groups[$k] = new domain\group($group, $db);
+                $this->groups[$k] = new domain\group($group);
             } catch (exception\invalid_group_argument $e) {
                 unset($this->groups[$k]);
             }
@@ -197,27 +175,30 @@ class autogroup_set extends domain {
     }
 
     /**
+     * Generate group idnumber
      * @param string $groupname
      * @return string
      */
     private function generate_group_idnumber($groupname) {
         // Generate the idnumber for this group.
-        $idnumber = implode('|',
-            array(
+        $idnumber = implode(
+            '|',
+            [
                 'autogroup',
                 $this->id,
-                $groupname
-            )
+                $groupname,
+            ]
         );
         return $idnumber;
     }
 
     /**
-     * @param \moodle_database $db
+     * Retrieve applicable roles.
      * @return array  role ids which should be added to the group
      */
-    private function retrieve_applicable_roles(\moodle_database $db) {
-        $roles = $db->get_records_menu('local_autogroup_roles', array('setid' => $this->id), 'id', 'id, roleid');
+    private function retrieve_applicable_roles() {
+        global $DB;
+        $roles = $DB->get_records_menu('local_autogroup_roles', ['setid' => $this->id], 'id', 'id, roleid');
 
         if (empty($roles) && !$this->exists()) {
             $roles = $this->retrieve_default_roles();
@@ -227,13 +208,14 @@ class autogroup_set extends domain {
     }
 
     /**
+     * Retrieve default roles.
      * @return array  default eligible roleids
      */
     private function retrieve_default_roles() {
         $config = \get_config('local_autogroup');
         if ($roles = \get_all_roles()) {
             $roles = \role_fix_names($roles, null, ROLENAME_ORIGINAL);
-            $newroles = array();
+            $newroles = [];
             foreach ($roles as $role) {
                 $attributename = 'eligiblerole_' . $role->id;
                 if (isset($config->$attributename) && $config->$attributename) {
@@ -246,18 +228,20 @@ class autogroup_set extends domain {
     }
 
     /**
-     * @param \moodle_database $db
+     * Delete.
+     * @param bool $cleanupgroups
      * @return bool
      */
-    public function delete(\moodle_database $db, $cleanupgroups = true) {
+    public function delete($cleanupgroups = true) {
+        global $DB;
         if (!$this->exists()) {
             return false;
         }
 
         // This has to be done first to prevent event handler getting in the way.
-        $db->delete_records('local_autogroup_set', array('id' => $this->id));
-        $db->delete_records('local_autogroup_roles', array('setid' => $this->id));
-        $db->delete_records('local_autogroup_manual', array('groupid' => $this->id));
+        $DB->delete_records('local_autogroup_set', ['id' => $this->id]);
+        $DB->delete_records('local_autogroup_roles', ['setid' => $this->id]);
+        $DB->delete_records('local_autogroup_manual', ['groupid' => $this->id]);
 
         if ($cleanupgroups) {
             foreach ($this->groups as $k => $group) {
@@ -272,6 +256,7 @@ class autogroup_set extends domain {
     }
 
     /**
+     * Disassociate groups.
      * Used to unlink generated groups from an autogroup set
      */
     public function disassociate_groups() {
@@ -283,10 +268,11 @@ class autogroup_set extends domain {
     }
 
     /**
+     * Get eligible roles.
      * @return array
      */
     public function get_eligible_roles() {
-        $cleanroles = array();
+        $cleanroles = [];
         foreach ($this->roles as $role) {
             $cleanroles[$role] = $role;
         }
@@ -294,10 +280,9 @@ class autogroup_set extends domain {
     }
 
     /**
-     * This function updates cached roles and returns true
-     * if a change has been made.
+     * This function updates cached roles and returns true if a change has been made.
      *
-     * @param $newroles
+     * @param array $newroles
      * @return bool
      */
     public function set_eligible_roles($newroles) {
@@ -320,8 +305,7 @@ class autogroup_set extends domain {
     }
 
     /**
-     * Returns the options to be displayed on the autgroup_set
-     * editing form. These are defined per-module.
+     * Returns the options to be displayed on the autgroup_set editing form.
      *
      * @return array
      */
@@ -330,8 +314,7 @@ class autogroup_set extends domain {
     }
 
     /**
-     * Returns the options to be displayed on the autgroup_set
-     * editing form. These are defined per-module.
+     * Returns the options to be displayed on the autgroup_set editing form.
      *
      * @return array
      */
@@ -340,6 +323,7 @@ class autogroup_set extends domain {
     }
 
     /**
+     * Group count.
      * @return int  the count of groups linked to this groupset
      */
     public function get_group_count() {
@@ -347,10 +331,11 @@ class autogroup_set extends domain {
     }
 
     /**
+     * Membership counts.
      * @return array
      */
     public function get_membership_counts() {
-        $result = array();
+        $result = [];
         foreach ($this->groups as $groupid => $group) {
             $result[$groupid] = $group->membership_count();
         }
@@ -358,8 +343,7 @@ class autogroup_set extends domain {
     }
 
     /**
-     * returns the actual value of the field this is currently
-     * grouping by.
+     * The actual value of the field this is currently grouping by.
      *
      * @return string
      */
@@ -368,8 +352,7 @@ class autogroup_set extends domain {
     }
 
     /**
-     * returns the display name of the field this is currently
-     * grouping by.
+     * Display name of the field this is currently grouping by.
      *
      * @return string
      */
@@ -378,7 +361,7 @@ class autogroup_set extends domain {
     }
 
     /**
-     * returns delimiter.
+     * Delimiter.
      *
      * @return string
      */
@@ -387,6 +370,7 @@ class autogroup_set extends domain {
     }
 
     /**
+     * Set course.
      * @param int $courseid
      */
     public function set_course($courseid) {
@@ -396,9 +380,9 @@ class autogroup_set extends domain {
     }
 
     /**
-     * configured the sort module for this groupset
+     * Set sort module for this groupset.
      *
-     * @param string $sort_module
+     * @param string $sortmodule
      */
     public function set_sort_module($sortmodule = 'profile_field') {
         if ($this->sortmoduleshortname == $sortmodule) {
@@ -414,7 +398,8 @@ class autogroup_set extends domain {
     }
 
     /**
-     * @param stdClass $options
+     * Set options.
+     * @param stdClass $config
      */
     public function set_options(stdClass $config) {
         if ($this->sortmodule->config_is_valid($config)) {
@@ -426,26 +411,26 @@ class autogroup_set extends domain {
     }
 
     /**
-     * @param \stdclass $user
-     * @param \moodle_database $db
+     * Verify user group membership
+     * @param stdClass $user
      * @param \context_course $context
      * @return bool
      */
-    public function verify_user_group_membership(\stdclass $user, \moodle_database $db, \context_course $context) {
-        $eligiblegroups = array();
+    public function verify_user_group_membership(stdClass $user, \context_course $context) {
+        $eligiblegroups = [];
 
         // We only want to check with the sorting module if this user has the correct role assignment.
-        if ($this->user_is_eligible_in_context($user->id, $db, $context)) {
+        if ($this->user_is_eligible_in_context($user->id, $context)) {
             // An array of strings from the sort module.
             $eligiblegroups = $this->sortmodule->eligible_groups_for_user($user);
         }
 
         // An array of groupids which will be populated as we ensure membership.
-        $validgroups = array();
+        $validgroups = [];
         $newgroup = false;
 
         foreach ($eligiblegroups as $eligiblegroup) {
-            list($group, $groupcreated) = $this->get_or_create_group_by_idnumber($eligiblegroup, $db);
+            [$group, $groupcreated] = $this->get_or_create_group_by_idnumber($eligiblegroup);
             if ($group) {
                 $validgroups[] = $group->id;
                 $group->ensure_user_is_member($user->id);
@@ -459,9 +444,9 @@ class autogroup_set extends domain {
 
         // Now run through other groups and ensure user is not a member.
         foreach ($this->groups as $key => $group) {
-            if (!in_array($group->id, $validgroups)) {
+            if (!in_array($key, $validgroups)) {
                 if ($group->ensure_user_is_not_member($user->id) && $newgroup) {
-                    $this->update_forums($user->id, $group->id, $newgroup, $db);
+                    $this->update_forums($user->id, $group->id, $newgroup);
                 }
             }
         }
@@ -470,15 +455,13 @@ class autogroup_set extends domain {
     }
 
     /**
-     * Whether or not the user is eligible to be grouped
-     * by this autogroup set
+     * Whether or not the user is eligible to be grouped by this autogroup set
      *
      * @param int $userid
-     * @param \moodle_database $db
      * @param \context_course $context
      * @return bool
      */
-    private function user_is_eligible_in_context($userid, \moodle_database $db, \context_course $context) {
+    private function user_is_eligible_in_context($userid, \context_course $context) {
         $roleassignments = \get_user_roles($context, $userid);
 
         foreach ($roleassignments as $role) {
@@ -490,11 +473,11 @@ class autogroup_set extends domain {
     }
 
     /**
-     * @param string $groupname
-     * @param \moodle_database $db
+     * Get or create group by idnumber.
+     * @param stdClass|string $group
      * @return [bool|domain/group, bool]
      */
-    private function get_or_create_group_by_idnumber($group, \moodle_database $db) {
+    private function get_or_create_group_by_idnumber($group) {
         if (is_object($group) && isset($group->idnumber) && isset($group->friendlyname)) {
             $groupname = $group->friendlyname;
             $groupidnumber = $group->idnumber;
@@ -508,7 +491,6 @@ class autogroup_set extends domain {
         // Firstly run through existing groups and check for matches.
         foreach ($this->groups as $group) {
             if ($group->idnumber == $idnumber) {
-
                 if ($group->name != $groupname) {
                     $group->name = $groupname;
                     $group->update();
@@ -519,7 +501,7 @@ class autogroup_set extends domain {
         }
 
         // If we don't find a match, create a new group.
-        $data = new \stdclass();
+        $data = new \stdClass();
         $data->id = 0;
         $data->name = $groupname;
         $data->idnumber = $idnumber;
@@ -531,7 +513,7 @@ class autogroup_set extends domain {
         $data->hidepicture = 0;
 
         try {
-            $newgroup = new domain\group($data, $db);
+            $newgroup = new domain\group($data);
             $newgroup->create();
             $this->groups[$newgroup->id] = $newgroup;
         } catch (exception\invalid_group_argument $e) {
@@ -542,30 +524,30 @@ class autogroup_set extends domain {
     }
 
     /**
-     * @param \moodle_database $db
+     * Create.
      * @return bool
      */
-    public function create(\moodle_database $db) {
-        return $this->save($db);
+    public function create() {
+        return $this->save();
     }
 
     /**
      * Save or create this autogroup set to the database
-     *
-     * @param moodle_database $db
+     * @param bool $cleanupold
      */
-    public function save(moodle_database $db, $cleanupold = true) {
+    public function save($cleanupold = true) {
+        global $DB;
         $this->update_timestamps();
 
         $data = $this->as_object();
         $data->sortconfig = json_encode($data->sortconfig);
         if ($this->exists()) {
-            $db->update_record('local_autogroup_set', $data);
+            $DB->update_record('local_autogroup_set', $data);
         } else {
-            $this->id = $db->insert_record('local_autogroup_set', $data);
+            $this->id = $DB->insert_record('local_autogroup_set', $data);
         }
 
-        $this->save_roles($db);
+        $this->save_roles();
 
         // If the user wants to preserve old groups we will need to detatch them now.
         if (!$cleanupold) {
@@ -574,10 +556,11 @@ class autogroup_set extends domain {
     }
 
     /**
-     * @return \stdclass $autogroupset
+     * As object.
+     * @return stdClass $autogroupset
      */
     private function as_object() {
-        $autogroupset = new \stdclass();
+        $autogroupset = new \stdClass();
         foreach ($this->attributes as $attribute) {
             $autogroupset->$attribute = $this->$attribute;
         }
@@ -585,39 +568,39 @@ class autogroup_set extends domain {
         // This is a special case because we dont want
         // to export the sort module, just the name of the module.
         $autogroupset->sortmodule = $this->sortmoduleshortname;
-
         return $autogroupset;
     }
 
     /**
+     * Save roles.
      * This function builds a list of roles to add and a list of roles to
      * remove, before carrying out the action on the database. It will only
      * run if the autogroup_set exists since roles must be keyed against
      * the autogroup_set id.
      *
-     * @param moodle_database $db
      * @return bool
      * @throws \coding_exception
      */
-    private function save_roles(moodle_database $db) {
+    private function save_roles() {
+        global $DB;
         if (!$this->exists()) {
             return false;
         }
 
-        $rolestoremove = $db->get_records_menu(
+        $rolestoremove = $DB->get_records_menu(
             'local_autogroup_roles',
-            array('setid' => $this->id),
+            ['setid' => $this->id],
             'id',
             'id, roleid'
         );
-        $rolestoadd = array();
+        $rolestoadd = [];
 
         foreach ($this->roles as $role) {
             if ($key = array_search($role, $rolestoremove)) {
-                // We don't want to remove this from the db.
+                // We don't want to remove this from the DB.
                 unset($rolestoremove[$key]);
             } else {
-                // We want to add this to the db.
+                // We want to add this to the DB.
                 $newrow = new stdClass();
                 $newrow->setid = $this->id;
                 $newrow->roleid = $role;
@@ -629,7 +612,7 @@ class autogroup_set extends domain {
 
         if (count($rolestoremove)) {
             // If there are changes to make do them and return true.
-            list($in, $params) = $db->get_in_or_equal($rolestoremove);
+            [$in, $params] = $DB->get_in_or_equal($rolestoremove);
             $params[] = $this->id;
 
             // If there are changes to make do them and return true.
@@ -637,18 +620,18 @@ class autogroup_set extends domain {
                 . "WHERE roleid " . $in . PHP_EOL
                 . "AND setid = ?";
 
-            $db->execute($sql, $params);
+            $DB->execute($sql, $params);
 
             $changed = true;
         }
 
         if (count($rolestoadd)) {
-            $db->insert_records('local_autogroup_roles', $rolestoadd);
+            $DB->insert_records('local_autogroup_roles', $rolestoadd);
             $changed = true;
         }
 
         if ($changed) {
-            $this->roles = $this->retrieve_applicable_roles($db);
+            $this->roles = $this->retrieve_applicable_roles();
         }
 
         return $changed;
@@ -659,11 +642,10 @@ class autogroup_set extends domain {
      * @param int $userid
      * @param int $oldgroupid
      * @param int $newgroupid
-     * @param \moodle_database $db
      */
-    private function update_forums($userid, $oldgroupid, $newgroupid, \moodle_database $db) {
+    private function update_forums($userid, $oldgroupid, $newgroupid) {
+        global $DB;
         $conditions = ['course' => $this->courseid, 'userid' => $userid, 'groupid' => $oldgroupid];
-        $db->set_field('forum_discussions', 'groupid', $newgroupid, $conditions);
+        $DB->set_field('forum_discussions', 'groupid', $newgroupid, $conditions);
     }
-
 }

@@ -30,5 +30,12 @@ namespace local_autogroup\exception;
 
 use local_autogroup\exception;
 
+/**
+ * autogroup invalid argument exception.
+ *
+ * @package    local_autogroup
+ * @copyright  Mark Ward (me@moodlemark.com)
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 abstract class invalid_argument extends exception {
 }

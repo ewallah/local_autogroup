@@ -42,6 +42,7 @@ use moodle_exception;
  */
 abstract class exception extends moodle_exception {
     /**
+     * Constructor.
      * @param string $errorcode
      * @param string $link
      * @param null $a

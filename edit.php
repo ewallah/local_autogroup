@@ -66,16 +66,16 @@ switch ($action) {
         if ($groupsetid < 1) {
             throw new exception\invalid_autogroup_set_argument($groupsetid);
         }
-        $data = $DB->get_record('local_autogroup_set', array('id' => $groupsetid));
+        $data = $DB->get_record('local_autogroup_set', ['id' => $groupsetid]);
         $courseid = (int)$data->courseid;
-        $groupset = new domain\autogroup_set($DB, $data);
+        $groupset = new domain\autogroup_set($data);
 
     case 'add':
         if ($courseid < 1 || $courseid == $SITE->id) {
             throw new exception\invalid_course_argument($courseid);
         }
         if (!isset($groupset)) {
-            $groupset = new domain\autogroup_set($DB);
+            $groupset = new domain\autogroup_set();
             $groupset->set_course($courseid);
         }
         break;
@@ -93,12 +93,12 @@ $context = context_course::instance($courseid);
 
 require_capability('local/autogroup:managecourse', $context);
 
-$course = $DB->get_record('course', array('id' => $courseid));
+$course = $DB->get_record('course', ['id' => $courseid]);
 
 $heading = \get_string('coursesettingstitle', 'local_autogroup', $course->shortname);
 
 $PAGE->set_context($context);
-$PAGE->set_url(local_autogroup_renderer::URL_COURSE_SETTINGS, array('courseid' => $courseid));
+$PAGE->set_url(local_autogroup_renderer::URL_COURSE_SETTINGS, ['courseid' => $courseid]);
 $PAGE->set_title($heading);
 $PAGE->set_heading($heading);
 $PAGE->set_pagelayout('incourse');
@@ -106,7 +106,7 @@ $PAGE->set_course($course);
 
 $output = $PAGE->get_renderer('local_autogroup');
 
-$returnparams = array('action' => $action, 'sortmodule' => $sortmodule);
+$returnparams = ['action' => $action, 'sortmodule' => $sortmodule];
 if ($groupset->exists()) {
     $returnparams['gsid'] = $groupset->id;
 } else {
@@ -114,7 +114,7 @@ if ($groupset->exists()) {
 }
 
 $returnurl = new moodle_url(local_autogroup_renderer::URL_COURSE_SETTINGS, $returnparams);
-$aborturl = new moodle_url(local_autogroup_renderer::URL_COURSE_MANAGE, array('courseid' => $courseid));
+$aborturl = new moodle_url(local_autogroup_renderer::URL_COURSE_MANAGE, ['courseid' => $courseid]);
 
 if ($action == 'delete') {
     $form = new form\autogroup_set_delete($returnurl, $groupset);
@@ -126,21 +126,19 @@ if ($form->is_cancelled()) {
     redirect($aborturl);
 }
 if ($data = $form->get_data()) {
-
     // Data relevant to both form types.
     $updategroupmembership = false;
     $cleanupold = isset($data->cleanupold) ? (bool)$data->cleanupold : true;
 
     if ($action == 'delete') {
         // User has selected "dont group".
-        $groupset->delete($DB, $cleanupold);
+        $groupset->delete($cleanupold);
 
-        $groupset = new domain\autogroup_set($DB);
+        $groupset = new domain\autogroup_set();
         $groupset->set_course($courseid);
 
         $updategroupmembership = true;
     } else {
-
         $updated = false;
         $options = new stdClass();
         if (!empty($data->groupby) && $data->groupby != $groupset->grouping_by()) {
@@ -155,7 +153,7 @@ if ($data = $form->get_data()) {
         if ($updated) {
             // User has selected another option.
             $groupset->set_options($options);
-            $groupset->save($DB, $cleanupold);
+            $groupset->save($cleanupold);
 
             $updategroupmembership = true;
         }
@@ -163,7 +161,7 @@ if ($data = $form->get_data()) {
         // Check for role settings.
         if ($groupset->exists() && $roles = \get_all_roles()) {
             $roles = \role_fix_names($roles, null, ROLENAME_ORIGINAL);
-            $newroles = array();
+            $newroles = [];
             foreach ($roles as $role) {
                 $attributename = 'role_' . $role->id;
                 if (isset($data->$attributename)) {
@@ -171,17 +169,16 @@ if ($data = $form->get_data()) {
                 }
             }
 
-            if ($groupset->set_eligible_roles($newroles, $DB)) {
-                $groupset->save($DB, $cleanupold);
+            if ($groupset->set_eligible_roles($newroles)) {
+                $groupset->save($cleanupold);
 
                 $updategroupmembership = true;
             }
         }
-
     }
 
     if ($updategroupmembership) {
-        $usecase = new usecase\verify_course_group_membership($courseid, $DB);
+        $usecase = new usecase\verify_course_group_membership($courseid);
         $usecase->invoke();
     }
 

@@ -24,8 +24,6 @@
 
 namespace local_autogroup\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
 use core_privacy\local\metadata\collection;
 use core_privacy\local\request\contextlist;
 use core_privacy\local\request\approved_contextlist;
@@ -40,17 +38,14 @@ use core_privacy\local\request\userlist;
  * @copyright  2023 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class provider implements
-    \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\data_provider {
-
+class provider implements \core_privacy\local\request\data_provider, \core_privacy\local\metadata\provider {
     /**
      * Returns metadata about this plugin's privacy policy.
      *
      * @param   collection $collection The initialised collection to add items to.
      * @return  collection     A listing of user data stored through this system.
      */
-    public static function get_metadata(collection $collection) : collection {
+    public static function get_metadata(collection $collection): collection {
         $collection->add_database_table(
             'local_autogroup_manual',
             [
@@ -70,7 +65,7 @@ class provider implements
      * @param int $userid the userid to search.
      * @return contextlist the contexts in which data is contained.
      */
-    public static function get_contexts_for_userid(int $userid) : contextlist {
+    public static function get_contexts_for_userid(int $userid): contextlist {
         $sql = "SELECT ctx.id
                   FROM {local_autogroup_manual} agm
                   JOIN {groups} g ON agm.groupid = g.id
@@ -112,11 +107,10 @@ class provider implements
         foreach ($contextlist as $context) {
             // If not in course context, exit loop.
             if ($context instanceof \context_course) {
-
                 $parentclass = [];
 
                 // Get records for user ID.
-                $rows = $DB->get_records('local_autogroup_manual', array('userid' => $userid));
+                $rows = $DB->get_records('local_autogroup_manual', ['userid' => $userid]);
 
                 if (count($rows) > 0) {
                     $i = 0;
@@ -129,7 +123,8 @@ class provider implements
 
                 writer::with_context($context)->export_data(
                     [get_string('privacy:metadata:local_autogroup_manual', 'local_autogroup_manual')],
-                    (object) $parentclass);
+                    (object) $parentclass
+                );
             }
         }
     }
@@ -195,7 +190,7 @@ class provider implements
                 return;
             }
 
-            list($usersql, $userparams) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+            [$usersql, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
 
             $groupselect = "SELECT id FROM {groups} WHERE courseid = :courseid";
             $groupparams = ['courseid' => $context->instanceid];

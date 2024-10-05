@@ -30,44 +30,39 @@ namespace local_autogroup\form;
 
 use local_autogroup\domain;
 use local_autogroup\form;
+use stdClass;
 
 /**
  * Class course_settings
  * @package local_autogroup\form
  */
 class autogroup_set_settings extends form {
-    /**
-     * @type domain\autogroup_set
-     */
-    protected $_customdata;
+    /** @var \local_autogroup\domain\autogroup_set autogroup_set*/
+    protected $autogroupset;
+    /** @var stdClass customdata */
+    protected $customdata;
 
     /**
-     *
+     * Definition.
      */
     public function definition() {
-        $this->autogroup_set = $this->get_submitted_data();
-
+        $this->customdata = $this->get_submitted_data();
         $this->add_group_by_options();
-
         $this->add_field_delimiter_options();
-
         $this->add_role_options();
-
         $this->add_action_buttons();
     }
 
     /**
+     * Add group by options
      * @throws \coding_exception
      */
     private function add_group_by_options() {
         $mform = &$this->_form;
-
-        $options = $this->_customdata->get_group_by_options();
-
+        $options = $this->customdata->get_group_by_options();
         $mform->addElement('select', 'groupby', get_string('set_groupby', 'local_autogroup'), $options);
-        $mform->setDefault('groupby', $this->_customdata->grouping_by());
-
-        if ($this->_customdata->exists()) {
+        $mform->setDefault('groupby', $this->customdata->grouping_by());
+        if ($this->customdata->exists()) {
             // Offer to preserve existing groups.
             $mform->addElement('selectyesno', 'cleanupold', get_string('cleanupold', 'local_autogroup'));
             $mform->setDefault('cleanupold', 1);
@@ -80,27 +75,24 @@ class autogroup_set_settings extends form {
      * @return void
      */
     protected function add_field_delimiter_options() {
-        $delimiteroptions = $this->_customdata->get_delimited_by_options();
+        $delimiteroptions = $this->customdata->get_delimited_by_options();
         if ($delimiteroptions) {
             $mform = &$this->_form;
             $mform->addElement('select', 'delimitedby', get_string('set_delimitedby', 'local_autogroup'), $delimiteroptions);
-            $mform->setDefault('delimitedby', $this->_customdata->delimited_by());
+            $mform->setDefault('delimitedby', $this->customdata->delimited_by());
         }
     }
 
     /**
+     * Adds role options>
      * @throws \coding_exception
      */
     private function add_role_options() {
         $mform = &$this->_form;
-
-        $currentroles = $this->_customdata->get_eligible_roles();
-
+        $currentroles = $this->customdata->get_eligible_roles();
         $mform->addElement('header', 'roles', get_string('set_roles', 'local_autogroup'));
-
         if ($roles = \get_all_roles()) {
             $roles = \role_fix_names($roles, null, ROLENAME_ORIGINAL);
-            $assignableroles = \get_roles_for_contextlevels(CONTEXT_COURSE);
             foreach ($roles as $role) {
                 $mform->addElement('checkbox', 'role_' . $role->id, $role->localname);
                 if (in_array($role->id, $currentroles)) {
@@ -111,11 +103,10 @@ class autogroup_set_settings extends form {
     }
 
     /**
-     *
+     * Extract data;
      */
     public function extract_data() {
-        $data = array();
+        $data = [];
         $this->set_data($data);
     }
-
 }

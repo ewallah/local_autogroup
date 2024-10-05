@@ -48,88 +48,62 @@ require_once(__DIR__ . "/../../../../group/lib.php");
  * @package local_autogroup\domain
  */
 class group extends domain {
-    /**
-     * An array of DB level attributes for a group
-     * used for handling stdclass object conversion.
-     *
-     * @var array
-     */
-    protected $attributes = array(
+    /** @var array attributes */
+    protected $attributes = [
         'id', 'courseid', 'idnumber', 'name', 'description', 'descriptionformat',
-        'enrolmentkey', 'picture', 'timecreated', 'timemodified'
-    );
-    /**
-     * @var int
-     */
+        'enrolmentkey', 'picture', 'timecreated', 'timemodified',
+    ];
+    /** @var int courseid */
     protected $courseid = 0;
-    /**
-     * @var string
-     */
+    /** @var string idnumber */
     protected $idnumber = '';
-    /**
-     * @var string
-     */
+    /** @var string name */
     protected $name = '';
-    /**
-     * @var string
-     */
+    /** @var string description */
     protected $description = '';
-    /**
-     * @var int
-     */
+    /** @var int descriptionformat */
     protected $descriptionformat = 1;
-    /**
-     * @var string
-     */
+    /** @var string enrolmentkey */
     protected $enrolmentkey = '';
-    /**
-     * @var int
-     */
+    /** @var int picture */
     protected $picture = 0;
-    /**
-     * @var int
-     */
+    /** @var int timecreated */
     protected $timecreated = 0;
-    /**
-     * @var int
-     */
+    /** @var int timemodified */
     protected $timemodified = 0;
-    /**
-     * List of members for this group
-     *
-     * @var array
-     */
+    /** @var array members */
     private $members;
 
     /**
+     * Constructor.
      * @param int|stdClass $group
-     * @param \moodle_database $db
      * @throws exception\invalid_group_argument
      */
-    public function __construct($group, \moodle_database $db) {
+    public function __construct($group) {
         if (is_int($group) && $group > 0) {
-            $this->load_from_database($group, $db);
+            $this->load_from_database($group);
         } else if ($this->validate_object($group)) {
             $this->load_from_object($group);
         } else {
             throw new exception\invalid_group_argument($group);
         }
-
-        $this->get_members($db);
+        $this->get_members();
     }
 
     /**
-     * @param $groupid
-     * @param \moodle_database $db
+     * Load from database.
+     * @param int $groupid
      */
-    private function load_from_database($groupid, \moodle_database $db) {
-        $group = $db->get_record('groups', array('id' => $groupid));
+    private function load_from_database($groupid) {
+        global $DB;
+        $group = $DB->get_record('groups', ['id' => $groupid]);
         if ($this->validate_object($group)) {
             $this->load_from_object($group);
         }
     }
 
     /**
+     * Validate object.
      * @param stdClass $group
      * @return bool
      */
@@ -150,6 +124,7 @@ class group extends domain {
     }
 
     /**
+     * Load from object.
      * @param \stdclass $group
      */
     private function load_from_object(\stdclass $group) {
@@ -159,10 +134,11 @@ class group extends domain {
     }
 
     /**
-     * @param \moodle_database $db
+     * Get members.
      */
-    private function get_members(\moodle_database $db) {
-        $this->members = $db->get_records_menu('groups_members', array('groupid' => $this->id), 'id', 'id,userid');
+    private function get_members() {
+        global $DB;
+        $this->members = $DB->get_records_menu('groups_members', ['groupid' => $this->id], 'id', 'id,userid');
     }
 
     /**
@@ -183,6 +159,7 @@ class group extends domain {
     }
 
     /**
+     *  As object.
      * @return \stdclass $group
      */
     private function as_object() {
@@ -203,7 +180,7 @@ class group extends domain {
         $pluginconfig = get_config('local_autogroup');
         if ($pluginconfig->preservemanual) {
             global $DB;
-            if ($DB->record_exists('local_autogroup_manual', array('userid' => $userid, 'groupid' => $this->id))) {
+            if ($DB->record_exists('local_autogroup_manual', ['userid' => $userid, 'groupid' => $this->id])) {
                 return;
             }
         }
@@ -218,6 +195,7 @@ class group extends domain {
     }
 
     /**
+     * Membership count.
      * @return int
      */
     public function membership_count() {
@@ -225,8 +203,7 @@ class group extends domain {
     }
 
     /**
-     * Adds this group to the application if it hasn't
-     * been created already
+     * Adds this group to the application if it hasn't been created already
      *
      * @return void
      */
@@ -237,10 +214,11 @@ class group extends domain {
     }
 
     /**
-     * @param moodle_database $db
+     * Is valid autogroup.
      * @return bool   whether this group is an autogroup or not
      */
-    public function is_valid_autogroup(\moodle_database $db) {
+    public function is_valid_autogroup() {
+        global $DB;
         if (!$this->is_autogroup()) {
             return false;
         }
@@ -255,13 +233,11 @@ class group extends domain {
             return false;
         }
 
-        return $db->record_exists('local_autogroup_set', array('id' => $groupsetid, 'courseid' => $this->courseid));
+        return $DB->record_exists('local_autogroup_set', ['id' => $groupsetid, 'courseid' => $this->courseid]);
     }
-    /**
-     * @var int
-     */
 
     /**
+     * Is auto group.
      * @return bool   whether this group is an autogroup or not
      */
     private function is_autogroup() {
@@ -269,7 +245,7 @@ class group extends domain {
     }
 
     /**
-     * delete this group from the application
+     * Delete this group from the application
      * @return bool
      */
     public function remove() {
@@ -279,11 +255,14 @@ class group extends domain {
         return false;
     }
 
+    /**
+     * Update this group from the application
+     * @return bool
+     */
     public function update() {
         if (!$this->exists()) {
             return false;
         }
         return \groups_update_group($this->as_object());
     }
-
 }

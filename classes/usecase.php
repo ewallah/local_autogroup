@@ -45,8 +45,8 @@ namespace local_autogroup;
  * @package local_autogroup
  */
 abstract class usecase {
-
     /**
+     * Invoke.
      * @return mixed
      */
     abstract public function invoke();
@@ -60,7 +60,8 @@ abstract class usecase {
     }
 
     /**
-     * @param $attribute
+     * Getter.
+     * @param string $attribute
      * @return null
      */
     public function __get($attribute) {
@@ -68,8 +69,9 @@ abstract class usecase {
     }
 
     /**
-     * @param $attribute
-     * @param $value
+     * Setter.
+     * @param string $attribute
+     * @param string $value
      * @return bool
      */
     public function __set($attribute, $value) {

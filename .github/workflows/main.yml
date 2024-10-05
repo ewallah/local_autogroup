@@ -96,6 +96,11 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci --ansi mustache
 
+      - name: PHPUnit setup
+        if: ${{ !cancelled() }}
+        run: php admin/tool/phpunit/cli/init.php --no-composer-self-update
+        working-directory: moodle
+
       - name: phpunit
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci --ansi phpunit --coverage-text --coverage-clover

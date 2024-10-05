@@ -42,49 +42,36 @@ require_once($CFG->dirroot . '/local/autogroup/lib.php');
  * @package local_autogroup\usecase
  */
 class add_default_to_course extends usecase {
-    /**
-     * @var bool
-     */
+    /** @var bool addtonewcourse */
     private $addtonewcourse = false;
-    /**
-     * @var domain\group
-     */
+    /** @var int courseid */
     private $courseid;
-    /**
-     * @var moodle_database
-     */
-    private $db;
-    /**
-     * @var stdClass
-     */
+    /** @var stdClass pluginconfig */
     private $pluginconfig;
 
     /**
+     * Constructor.
      * @param int $courseid
-     * @param moodle_database $db
      */
-    public function __construct($courseid, moodle_database $db) {
+    public function __construct($courseid) {
+        global $DB;
         $this->courseid = (int)$courseid;
-        $this->db = $db;
-
         $this->pluginconfig = get_config('local_autogroup');
-
         $this->addtonewcourse = true;
-
-        if ($db->record_exists('local_autogroup_set', array('courseid' => $courseid))) {
+        if ($DB->record_exists('local_autogroup_set', ['courseid' => $courseid])) {
             // This shouldn't happen, but we want to ensure we avoid duplicates.
             $this->addtonewcourse = false;
         }
     }
 
     /**
+     * Invoke.
      * @return void
      */
     public function invoke() {
         if ($this->addtonewcourse) {
-
             // First generate a new autogroup_set object.
-            $autogroupset = new domain\autogroup_set($this->db);
+            $autogroupset = new domain\autogroup_set();
             $autogroupset->set_course($this->courseid);
 
             // Set the sorting options to global default.
@@ -99,15 +86,15 @@ class add_default_to_course extends usecase {
             // Now we can set the eligible roles to global default.
             if ($roles = \get_all_roles()) {
                 $roles = \role_fix_names($roles, null, ROLENAME_ORIGINAL);
-                $newroles = array();
+                $newroles = [];
                 foreach ($roles as $role) {
                     $attributename = 'eligiblerole_' . $role->id;
 
-                    if (isset($this->pluginconfig->$attributename) &&
-                        $this->pluginconfig->$attributename) {
-
+                    if (
+                        isset($this->pluginconfig->$attributename) &&
+                        $this->pluginconfig->$attributename
+                    ) {
                         $newroles[] = $role->id;
-
                     }
                 }
 
@@ -115,9 +102,9 @@ class add_default_to_course extends usecase {
             }
 
             // Save all that to db.
-            $autogroupset->save($this->db);
+            $autogroupset->save();
 
-            $usecase = new usecase\verify_course_group_membership($this->courseid, $this->db);
+            $usecase = new usecase\verify_course_group_membership($this->courseid);
             $usecase->invoke();
         }
     }

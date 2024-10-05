@@ -40,26 +40,19 @@ require_once($CFG->dirroot . '/local/autogroup/lib.php');
  * @package local_autogroup\usecase
  */
 class verify_course_group_membership extends usecase {
-
-    /**
-     * @var domain\user
-     */
+    /** @var domain\course */
     protected $course;
-    /**
-     * @var \moodle_database
-     */
-    private $db;
 
     /**
+     * Constructor.
      * @param int $courseid
-     * @param \moodle_database $db
      */
-    public function __construct($courseid, \moodle_database $db) {
-        $this->course = new domain\course($courseid, $db);
-        $this->db = $db;
+    public function __construct($courseid) {
+        $this->course = new domain\course($courseid);
     }
 
     /**
+     * Invoke.
      * @return bool
      */
     public function invoke() {
@@ -68,6 +61,6 @@ class verify_course_group_membership extends usecase {
         }
 
         set_time_limit(500);
-        return $this->course->verify_all_group_membership($this->db);
+        return $this->course->verify_all_group_membership();
     }
 }

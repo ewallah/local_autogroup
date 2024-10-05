@@ -30,20 +30,18 @@ namespace local_autogroup\form;
 
 use local_autogroup\domain;
 use local_autogroup\form;
-use \html_writer;
+use html_writer;
 
 /**
  * Class course_settings
  * @package local_autogroup\form
  */
 class autogroup_set_delete extends form {
-    /**
-     * @type domain\autogroup_set
-     */
-    protected $_customdata;
+    /** @var local_autogroup\domain\autogroup_set customdata*/
+    protected $customdata;
 
     /**
-     *
+     * Form definition.
      */
     public function definition() {
         $this->groupsetdata = $this->get_submitted_data();
@@ -53,6 +51,9 @@ class autogroup_set_delete extends form {
         $this->add_action_buttons(true, get_string('delete'));
     }
 
+    /**
+     * Add dialogue.
+     */
     private function add_dialogue() {
         $mform = $this->_form;
 
@@ -61,20 +62,18 @@ class autogroup_set_delete extends form {
         $html = html_writer::tag('p', get_string('confirmdelete', 'local_autogroup'));
         $mform->addElement('html', $html);
 
-        if ($this->_customdata->exists()) {
+        if ($this->customdata->exists()) {
             // Offer to preserve existing groups.
             $mform->addElement('selectyesno', 'cleanupold', get_string('cleanupold', 'local_autogroup'));
             $mform->setDefault('cleanupold', 1);
         }
-
     }
 
     /**
-     *
+     * Extract data.
      */
     public function extract_data() {
-        $data = array();
+        $data = [];
         $this->set_data($data);
     }
-
 }

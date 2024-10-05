@@ -40,21 +40,13 @@ namespace local_autogroup;
  * @package local_autogroup
  */
 abstract class domain {
-    /**
-     * @var array
-     */
-    protected $attributes = array('id', 'timecreated', 'timemodified');
-    /**
-     * @var int
-     */
+    /** @var array attributes */
+    protected $attributes = ['id', 'timecreated', 'timemodified'];
+    /** @var int timecreated */
     protected $timecreated = 0;
-    /**
-     * @var int
-     */
+    /** @var int timemodified */
     protected $timemodified = 0;
-    /**
-     * @type int
-     */
+    /** @var int id */
     private $id = 0;
 
     /**
@@ -66,6 +58,7 @@ abstract class domain {
     }
 
     /**
+     * Get id.
      * @return int
      */
     private function get_id() {
@@ -73,7 +66,8 @@ abstract class domain {
     }
 
     /**
-     * @param $attribute
+     * Getter.
+     * @param string $attribute
      * @return int|null
      */
     public function __get($attribute) {
@@ -88,8 +82,9 @@ abstract class domain {
     }
 
     /**
-     * @param $attribute
-     * @param $value
+     * Setter.
+     * @param string $attribute
+     * @param string $value
      * @return bool
      */
     public function __set($attribute, $value) {
@@ -109,6 +104,7 @@ abstract class domain {
     }
 
     /**
+     * Set id.
      * @param int $id
      */
     private function set_id($id) {
@@ -126,6 +122,7 @@ abstract class domain {
     }
 
     /**
+     * Exists.
      * @return bool
      */
     public function exists() {

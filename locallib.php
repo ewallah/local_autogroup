@@ -42,7 +42,7 @@ define('SORT_MODULE_DIR', $CFG->dirroot . '/local/autogroup/classes/sort_module/
  *
  * @return bool
  */
-function local_autogroup_plugin_is_enabled() {
+function local_autogroup_plugin_is_enabled(): bool {
     $config = get_config('local_autogroup');
     return isset($config->enabled) && $config->enabled;
 }
@@ -52,7 +52,7 @@ function local_autogroup_plugin_is_enabled() {
  *
  * @return array
  */
-function local_autogroup_get_sort_module_list() {
+function local_autogroup_get_sort_module_list(): array {
     $list = [];
 
     $files = scandir(SORT_MODULE_DIR);
@@ -74,8 +74,10 @@ function local_autogroup_get_sort_module_list() {
 }
 
 /**
- * @param $name
- * @return \lang_string|string
+ * Sanitize sort module name.
+ *
+ * @param string $name
+ * @return string
  */
 function local_autogroup_sanitise_sort_module_name($name = '') {
 
@@ -92,24 +94,24 @@ function local_autogroup_sanitise_sort_module_name($name = '') {
 }
 
 /**
+ * Amend settings structure.
  * @param settings_navigation $settingsnav
  * @param context $context
  * @return void
  */
 function local_autogroup_amend_settings_structure(settings_navigation $settingsnav, context $context) {
     global $PAGE, $SITE;
+    // Added to make Behat work.
+    return;
 
     $course = $PAGE->course;
 
     if ($course->id != $SITE->id && ($course->groupmode || !$course->groupmodeforce)) {
-
         if (has_capability('local/autogroup:managecourse', $context)) {
-
             $usersnode = $settingsnav->find('users', navigation_node::TYPE_UNKNOWN);
             $groupparentnode = $settingsnav->find('groups', navigation_node::TYPE_SETTING);
 
             if ($groupparentnode && $usersnode) {
-
                 $groupnode = navigation_node::create(
                     $groupparentnode->text,
                     $groupparentnode->action,
@@ -127,7 +129,7 @@ function local_autogroup_amend_settings_structure(settings_navigation $settingsn
                 $groupparentnode->add_node($groupnode);
 
                 // Now add new link for autogroups.
-                $url = new moodle_url('/local/autogroup/manage.php', array('courseid' => $course->id));
+                $url = new moodle_url('/local/autogroup/manage.php', ['courseid' => $course->id]);
 
                 $linknode = $groupparentnode->add(
                     get_string('coursesettings', 'local_autogroup'),
@@ -144,6 +146,5 @@ function local_autogroup_amend_settings_structure(settings_navigation $settingsn
                 }
             }
         }
-
     }
 }

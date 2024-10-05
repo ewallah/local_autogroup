@@ -56,13 +56,13 @@ if ($courseid == $SITE->id || !local_autogroup_plugin_is_enabled()) {
 }
 
 $PAGE->set_context($context);
-$PAGE->set_url(local_autogroup_renderer::URL_COURSE_MANAGE, array('courseid' => $courseid));
+$PAGE->set_url(local_autogroup_renderer::URL_COURSE_MANAGE, ['courseid' => $courseid]);
 
-$course = $DB->get_record('course', array('id' => $courseid));
-$groupsets = $DB->get_records('local_autogroup_set', array('courseid' => $courseid));
+$course = $DB->get_record('course', ['id' => $courseid]);
+$groupsets = $DB->get_records('local_autogroup_set', ['courseid' => $courseid]);
 
 foreach ($groupsets as $k => $groupset) {
-    $groupsets[$k] = new domain\autogroup_set($DB, $groupset);
+    $groupsets[$k] = new domain\autogroup_set($groupset);
 }
 
 $heading = \get_string('coursesettingstitle', 'local_autogroup', $course->shortname);

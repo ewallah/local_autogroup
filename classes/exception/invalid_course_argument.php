@@ -28,7 +28,20 @@
 
 namespace local_autogroup\exception;
 
+/**
+ * autogroup invalid course argument exception.
+ *
+ * @package    local_autogroup
+ * @copyright  Mark Ward (me@moodlemark.com)
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class invalid_course_argument extends invalid_argument {
+    /**
+     * Constructor.
+     * @param int $id
+     * @param string $link
+     * @param stdClass $debuginfo
+     */
     public function __construct($id, $link = '', $debuginfo = null) {
         $errorcode = 'error:invalidcourseargument';
         parent::__construct($errorcode, $link, $id, $debuginfo);

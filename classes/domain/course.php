@@ -30,6 +30,7 @@ namespace local_autogroup\domain;
 
 use local_autogroup\domain;
 use local_autogroup\exception;
+use stdClass;
 
 /**
  * Class course
@@ -44,31 +45,28 @@ use local_autogroup\exception;
  * @package local_autogroup\domain
  */
 class course extends domain {
-    /**
-     * @var array
-     */
-    private $autogroups = array();
-    /**
-     * @var \context_course
-     */
+    /** @var array autogroups */
+    private $autogroups = [];
+    /** @var \context_course context */
     private $context;
 
     /**
-     * @param $course
-     * @param \moodle_database $db
+     * Constructor.
+     * @param int $courseid
      * @throws exception\invalid_course_argument
      */
-    public function __construct($course, \moodle_database $db) {
+    public function __construct(int $courseid) {
         // Get the id for this course.
-        $this->parse_course_id($course);
+        $this->parse_course_id($courseid);
 
         $this->context = \context_course::instance($this->id);
 
         // Load autogroup groups for this course.
-        $this->get_autogroups($db);
+        $this->get_autogroups();
     }
 
     /**
+     * Parse course id.
      * @param object|int $course
      * @return bool
      * @throws exception\invalid_course_argument
@@ -88,15 +86,15 @@ class course extends domain {
     }
 
     /**
-     * @param \moodle_database $db
+     * Get autogroups.
      */
-    private function get_autogroups(\moodle_database $db) {
-
-        $this->autogroups = $db->get_records('local_autogroup_set', array('courseid' => $this->id));
+    private function get_autogroups() {
+        global $DB;
+        $this->autogroups = $DB->get_records('local_autogroup_set', ['courseid' => $this->id]);
 
         foreach ($this->autogroups as $id => $settings) {
             try {
-                $this->autogroups[$id] = new domain\autogroup_set($db, $settings);
+                $this->autogroups[$id] = new domain\autogroup_set($settings);
             } catch (exception\invalid_autogroup_set_argument $e) {
                 unset($this->autogroups[$id]);
             }
@@ -104,10 +102,11 @@ class course extends domain {
     }
 
     /**
+     * Get membership counts.
      * @return array
      */
     public function get_membership_counts() {
-        $result = array();
+        $result = [];
         foreach ($this->autogroups as $autogroup) {
             $result = $result + $autogroup->membership_count();
         }
@@ -115,29 +114,28 @@ class course extends domain {
     }
 
     /**
-     * @param \moodle_database $db
+     * Verify all group membership.
      * @return bool
      */
-    public function verify_all_group_membership(\moodle_database $db) {
+    public function verify_all_group_membership() {
         $result = true;
         $enrolledusers = \get_enrolled_users($this->context);
         foreach ($enrolledusers as $user) {
-            $result &= $this->verify_user_group_membership($user, $db);
+            $result &= $this->verify_user_group_membership($user);
         }
         return $result;
     }
 
     /**
-     * @param \stdclass $user
-     * @param \moodle_database $db
+     * Verify user group membership.
+     * @param stdClass $user
      * @return bool
      */
-    public function verify_user_group_membership(\stdclass $user, \moodle_database $db) {
+    public function verify_user_group_membership(stdClass $user) {
         $result = true;
         foreach ($this->autogroups as $autogroup) {
-            $result &= $autogroup->verify_user_group_membership($user, $db, $this->context);
+            $result &= $autogroup->verify_user_group_membership($user, $this->context);
         }
         return $result;
     }
-
 }

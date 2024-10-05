@@ -162,16 +162,6 @@ if ($hassiteconfig) {
             true
         )
     );
-    if (isset($CFG->totara_build)) { // Only for Totara.
-        $settings->add(
-            new admin_setting_configcheckbox(
-                'local_autogroup/listenforuserpositionchanges',
-                get_string('listenforuserpositionchanges', 'local_autogroup'),
-                get_string('listenforuserpositionchanges_help', 'local_autogroup'),
-                true
-            )
-        );
-    }
     $settings->add(
         new admin_setting_configcheckbox(
             'local_autogroup/listenforgroupchanges',

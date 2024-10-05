@@ -36,12 +36,11 @@ use stdClass;
  * @package local_autogroup\domain
  */
 class user_info_field extends sort_module {
-    /**
-     * @var string
-     */
+    /** @var string field */
     private $field = '';
 
     /**
+     * Constructor.
      * @param stdClass $config
      * @param int $courseid
      */
@@ -53,6 +52,7 @@ class user_info_field extends sort_module {
     }
 
     /**
+     * Is config valid.
      * @param stdClass $config
      * @return bool
      */
@@ -70,6 +70,8 @@ class user_info_field extends sort_module {
     }
 
     /**
+     * Get config options.
+     *
      * Returns the options to be displayed on the autgroup_set
      * editing form. These are defined per-module.
      *
@@ -88,6 +90,7 @@ class user_info_field extends sort_module {
     }
 
     /**
+     * Eligible groups for user
      * @param stdClass $user
      * @return array $result
      */
@@ -103,11 +106,12 @@ class user_info_field extends sort_module {
     }
 
     /**
+     * Grouping by.
      * @return bool|string
      */
     public function grouping_by() {
         global $DB;
-        if (empty ($this->field)) {
+        if (empty($this->field)) {
             return false;
         }
 
@@ -119,10 +123,10 @@ class user_info_field extends sort_module {
     }
 
     /**
+     * Grouping by text.
      * @return bool|string
      */
     public function grouping_by_text() {
         return ucfirst(format_string($this->grouping_by()));
     }
-
 }

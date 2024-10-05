@@ -36,7 +36,6 @@ function xmldb_local_autogroup_upgrade($oldversion) {
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2016062201) {
-
         // Convert "Strict enforcement" settings to new toggles.
         $pluginconfig = get_config('local_autogroup');
         if ($pluginconfig->strict) {
@@ -58,7 +57,7 @@ function xmldb_local_autogroup_upgrade($oldversion) {
         $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
 
         // Adding keys to table local_autogroup_manual.
-        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
 
         // Conditionally launch create table for local_autogroup_manual.
         if (!$dbman->table_exists($table)) {
@@ -73,7 +72,7 @@ function xmldb_local_autogroup_upgrade($oldversion) {
         require_once(__DIR__ . '/../classes/event_handler.php');
 
         $roleids = array_keys(get_all_roles());
-        list($sql, $params) = $DB->get_in_or_equal($roleids, SQL_PARAMS_QM, 'param', false);
+        [$sql, $params] = $DB->get_in_or_equal($roleids, SQL_PARAMS_QM, 'param', false);
         $invalidroleids = $DB->get_fieldset_select('local_autogroup_roles', 'DISTINCT roleid', 'roleid ' . $sql, $params);
         foreach ($invalidroleids as $roleid) {
             $event = \core\event\role_deleted::create(
@@ -81,8 +80,8 @@ function xmldb_local_autogroup_upgrade($oldversion) {
                     'context' => context_system::instance(),
                     'objectid' => $roleid,
                     'other' => [
-                        'shortname' => 'invalidroletoremove'
-                    ]
+                        'shortname' => 'invalidroletoremove',
+                    ],
                 ]
             );
             local_autogroup\event_handler::role_deleted($event);
@@ -91,7 +90,11 @@ function xmldb_local_autogroup_upgrade($oldversion) {
     }
 
     if ($oldversion < 2023040600) {
-        $DB->delete_records_select('local_autogroup_manual', 'groupid IN (SELECT id FROM {groups} WHERE idnumber NOT LIKE ?)', ['autogroup|%']);
+        $DB->delete_records_select(
+            'local_autogroup_manual',
+            'groupid IN (SELECT id FROM {groups} WHERE idnumber NOT LIKE ?)',
+            ['autogroup|%']
+        );
         upgrade_plugin_savepoint(true, 2023040600, 'local', 'autogroup');
     }
 

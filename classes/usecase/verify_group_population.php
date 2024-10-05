@@ -40,21 +40,18 @@ require_once($CFG->dirroot . '/local/autogroup/lib.php');
  * @package local_autogroup\usecase
  */
 class verify_group_population extends usecase {
-    /**
-     * @var domain\group
-     */
+    /** @var domain\group group */
     private $group;
-    /**
-     * @var bool $redirect
-     */
+    /**@var bool redirect */
     private $redirect = false;
 
     /**
+     * Constructor.
      * @param int $groupid
-     * @param \moodle_database $db
+     * @param \moodle_page $page
      */
-    public function __construct($groupid, \moodle_database $db, \moodle_page $page) {
-        $this->group = new domain\group($groupid, $db);
+    public function __construct($groupid, \moodle_page $page) {
+        $this->group = new domain\group($groupid);
 
         // If we are viewing the group members we should redirect to safety.
         if ($page->has_set_url() && strstr($page->url, 'group/members.php?group=' . $groupid)) {
@@ -63,6 +60,7 @@ class verify_group_population extends usecase {
     }
 
     /**
+     * Invoke.
      * @return void
      */
     public function invoke() {
@@ -76,7 +74,7 @@ class verify_group_population extends usecase {
         }
 
         if ($removed && $this->redirect) {
-            $url = new \moodle_url('/group/index.php', array('id' => $this->group->courseid));
+            $url = new \moodle_url('/group/index.php', ['id' => $this->group->courseid]);
             \redirect($url);
         }
     }

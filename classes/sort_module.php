@@ -28,7 +28,7 @@
 
 namespace local_autogroup;
 
-use \stdClass;
+use stdClass;
 
 /**
  * Sort modules are currently only partially functional. They offer a
@@ -41,31 +41,24 @@ use \stdClass;
  * @package local_autogroup
  */
 abstract class sort_module {
-
-    /**
-     * @var
-     */
+    /** @var stdClass user */
     protected $user;
-    /**
-     * @var
-     */
+    /** @var int courseid */
     protected $courseid;
-    /**
-     * @var array
-     */
-    protected $config = array();
-    /**
-     * @var array
-     */
+    /** @var array config */
+    protected $config = [];
+    /** @var array delimeters */
     protected $delimiters = [];
 
     /**
+     * Constructor.
      * @param stdClass $config
      * @param int $courseid
      */
     abstract public function __construct($config, $courseid);
 
     /**
+     * To string.
      * Child classes will probably override this method.
      * @return string
      */
@@ -74,12 +67,14 @@ abstract class sort_module {
     }
 
     /**
+     * Eligible groups for user.
      * @param stdClass $user
      * @return array $result
      */
     abstract public function eligible_groups_for_user(stdClass $user);
 
     /**
+     * Get config options.
      * Returns the options to be displayed on the autgroup_set
      * editing form. These are defined per-module.
      *
@@ -88,19 +83,21 @@ abstract class sort_module {
     abstract public function get_config_options();
 
     /**
+     * Getter.
      * @param string $attribute
      * @return array|null
      */
     public function __get($attribute) {
-        if ($attribute = 'groups') {
+        if ($attribute == 'groups') {
             return $this->eligible_groups();
         }
         return null;
     }
 
     /**
-     * @param $attribute
-     * @param $value
+     * Setter.
+     * @param string $attribute
+     * @param string $value
      * @return bool
      */
     public function __set($attribute, $value) {
@@ -108,6 +105,7 @@ abstract class sort_module {
     }
 
     /**
+     * Grouping by.
      * a string which explains how users are being grouped
      *
      * @return string
@@ -115,6 +113,7 @@ abstract class sort_module {
     abstract public function grouping_by();
 
     /**
+     * Grouping by text.
      * Return display string which explains how users are being grouped
      *
      * @return string

@@ -31,14 +31,32 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->libdir . '/outputrenderers.php');
 
+/**
+ * autogroup local plugin
+ *
+ * @package    local_autogroup
+ * @copyright  Mark Ward (me@moodlemark.com)
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class local_autogroup_renderer extends plugin_renderer_base {
+    /**
+     * URL_COURSE_SETTINGS
+     */
     const URL_COURSE_SETTINGS = '/local/autogroup/edit.php';
+    /**
+     *URL_COURSE_MANAGE
+     */
     const URL_COURSE_MANAGE = '/local/autogroup/manage.php';
 
+    /**
+     * Add new groupset.
+     * @param int $courseid
+     * @return string
+     */
     public function add_new_groupset($courseid) {
         $output = '';
 
-        $urlparams = array('action' => 'add', 'courseid' => (int)$courseid);
+        $urlparams = ['action' => 'add', 'courseid' => (int)$courseid];
         $newurl = new moodle_url(self::URL_COURSE_SETTINGS, $urlparams);
 
         $modules = local_autogroup_get_sort_module_list();
@@ -50,6 +68,11 @@ class local_autogroup_renderer extends plugin_renderer_base {
         return $output;
     }
 
+    /**
+     * Intro text.
+     * @param int $count
+     * @return string
+     */
     public function intro_text($count = 0) {
         $output = '';
 
@@ -67,56 +90,65 @@ class local_autogroup_renderer extends plugin_renderer_base {
         return $output;
     }
 
+    /**
+     * Groupsets table.
+     * @param array $groupsets
+     * @return string
+     */
     public function groupsets_table($groupsets) {
         if (!is_array($groupsets) || !count($groupsets)) {
             return null;
         }
 
-        $data = array();
+        $data = [];
 
         foreach ($groupsets as $groupset) {
             $data[] = $this->groupsets_table_group($groupset);
         }
 
         $table = new html_table();
-        $table->head = array(
+        $table->head = [
             get_string('set_type', 'local_autogroup'),
             get_string('set_groupby', 'local_autogroup'),
             get_string('set_groups', 'local_autogroup'),
             get_string('set_roles', 'local_autogroup'),
-            get_string('actions', 'local_autogroup')
-        );
+            get_string('actions', 'local_autogroup'),
+        ];
         $table->data = $data;
 
         return html_writer::table($table);
     }
 
+    /**
+     * Groupsets table group.
+     * @param local_autogroup\domain\autogroup_set $groupset
+     * @return array
+     */
     private function groupsets_table_group(local_autogroup\domain\autogroup_set $groupset) {
-        $row = array();
+        $row = [];
 
         // Get the groupset type.
-        $row [] = ucfirst(local_autogroup_sanitise_sort_module_name($groupset->sortmodule));
+        $row[] = ucfirst(local_autogroup_sanitise_sort_module_name($groupset->sortmodule));
 
         // Get the grouping by text which is used in the edit screen.
-        $row [] = ucfirst($groupset->grouping_by_text());
+        $row[] = ucfirst($groupset->grouping_by_text());
 
         // Get the count of groups.
-        $row [] = $groupset->get_group_count();
+        $row[] = $groupset->get_group_count();
 
         // Get the eligible roles.
         $roles = $groupset->get_eligible_roles();
         $roles = role_fix_names($roles, null, ROLENAME_ORIGINAL);
         $roletext = implode(', ', $roles);
-        $row [] = $roletext;
+        $row[] = $roletext;
 
         // Get the actions.
-        $editurl = new moodle_url('/local/autogroup/edit.php', array('gsid' => $groupset->id, 'action' => 'edit'));
-        $deleteurl = new moodle_url('/local/autogroup/edit.php', array('gsid' => $groupset->id, 'action' => 'delete'));
+        $editurl = new moodle_url('/local/autogroup/edit.php', ['gsid' => $groupset->id, 'action' => 'edit']);
+        $deleteurl = new moodle_url('/local/autogroup/edit.php', ['gsid' => $groupset->id, 'action' => 'delete']);
         $row[] =
             $this->action_icon($editurl, new pix_icon('t/edit', get_string('edit'))) .
             $this->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')));
 
         return $row;
     }
-
 }
