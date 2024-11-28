@@ -29,7 +29,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->libdir . '/outputrenderers.php');
 
 class local_autogroup_renderer extends plugin_renderer_base {
     const URL_COURSE_SETTINGS = '/local/autogroup/edit.php';
